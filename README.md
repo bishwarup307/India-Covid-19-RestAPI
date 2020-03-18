@@ -13,7 +13,7 @@
 }
 ```
 
-1. `GET https://covid19indiaapi.herokuapp.com/v1/states`
+1. `GET https://covid19indiaapi.herokuapp.com/v1/overall`
 
 ```json
 {
