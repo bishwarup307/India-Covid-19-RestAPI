@@ -3,8 +3,8 @@
 -->
 ```json
 {
-    state : {
-        date : [confirmed (Indian Nationals), confirmed (Foreign Nationals), Recovered, Death]
+    "state" : {
+        "date" : ["confirmed (Indian Nationals)", "confirmed (Foreign Nationals)", "Recovered", "Death"]
     }
 }
 ```
