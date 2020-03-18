@@ -1,4 +1,4 @@
-# Covid-19 Tracker (India)
+# COVID-19 Tracker (India)
 > This is a simple RESTful API for accessing daily cases with state-wise breakdown in India. The average response 
 > time of the API is ~400ms. Please link to this repository if you use it for your project :)
 
