@@ -1,4 +1,0 @@
-{
-    "python.formatting.provider": "black",
-    "python.pythonPath": "/home/bishwarup/anaconda3/envs/covid-api/bin/python"
-}
