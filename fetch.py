@@ -1,3 +1,10 @@
+"""
+Author: bishwarup
+Created: Friday, 17th March 2020 12:18:42 pm
+Modified: Friday, 20th March 2020 2:43:27 pm [bishwarup]
+"""
+
+
 import re
 from tqdm import tqdm
 import requests
@@ -124,6 +131,8 @@ if __name__ == "__main__":
         "https://web.archive.org/web/20200315232553/https://www.mohfw.gov.in/",
         "https://web.archive.org/web/20200316145236/https://www.mohfw.gov.in/",
         "http://web.archive.org/web/20200317050937/https://www.mohfw.gov.in/",
+        "https://web.archive.org/web/20200318233345/https://www.mohfw.gov.in/",
+        "https://web.archive.org/web/20200319155059/https://www.mohfw.gov.in/",
     ]
     r = get_stats(urls)
     with open("history.json", "w") as f:
