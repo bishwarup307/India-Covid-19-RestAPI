@@ -13,19 +13,15 @@ app = Flask(__name__)
 
 @app.route("/v1/states", methods=["GET"])
 def states():
-    with open("history.json", "r") as f:
-        history = json.load(f)
     updater = Update("https://www.mohfw.gov.in/")
-    history = updater.update(history)
+    history = updater.update()
     return jsonify(history)
 
 
 @app.route("/v1/overall", methods=["GET"])
 def overall():
-    # updater = Update("https://www.mohfw.gov.in/")
-    # oa = updater.get_overall()
-    with open("overall.json", "r") as f:
-        oa = json.load(f)
+    updater = Update("https://www.mohfw.gov.in/")
+    oa = updater.get_overall()
     return jsonify(oa)
 
 

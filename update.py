@@ -10,8 +10,33 @@ from datetime import datetime, timedelta
 import time
 import json
 import argparse
+import shelve
 
 
+class DB:
+    def __init__(self, name="COVID_DB"):
+        self.db = name
+
+    def put(self, var):
+        assert len(var) == 2
+        assert isinstance(var[0], str)
+        db = shelve.open(self.db)
+        db[var[0]] = var[1]
+        db.close()
+
+    def retrieve(self, key, default=None):
+        try:
+            db = shelve.open(self.db)
+            result = db[key]
+            db.close()
+        except KeyError:
+            print(f"Unable to locate record for `{key}`")
+            result = default
+        finally:
+            return result
+
+
+# TODO: remove multiple dependency on save
 class Update:
     def __init__(self, url):
         self.url = url
@@ -36,61 +61,64 @@ class Update:
         if isinstance(value, datetime):
             self._last_updated = value
 
-    def _needs_update(self):
-        with open("overall.json", "r") as f:
-            overall = json.load(f)
-        last_updated = datetime.strptime(overall["timestamp"], "%d/%m/%Y %H-%M-%S")
-        del overall["timestamp"]
-        latest = self.get_overall()
+    def get_last_modified(self):
+        resp = requests.get(self.url)
+        if resp.status_code == 200:
+            last_modified = resp.headers["last-modified"]
+            last_modified = datetime.strptime(last_modified, "%a, %d %b %Y %H:%M:%S %Z")
+            return last_modified
 
-        if (latest != sum(overall.values())) or (
-            (datetime.now() - last_updated).days > 1
-        ):
-            latest["timestamp"] = datetime.strftime(datetime.now(), "%d/%m/%Y %H-%M-%S")
-            with open("overall.json", "w") as f:
-                json.dump(latest, f)
-            return True
+    def _needs_update(self):
+
+        last_snapshot = DB().retrieve(
+            "last_snapshot", default=(datetime.now() - timedelta(days=3))
+        )
+        if isinstance(last_snapshot, str):
+            last_snapshot = datetime.strptime(last_snapshot, "%d/%m/%Y %H-%M-%S")
+
+        last_modified = self.get_last_modified()
+        if last_modified is None:
+            return False
+        if last_modified <= last_snapshot:
+            return False
+        return True
 
     def get_overall(self):
-        response = requests.get(self.url)
-        if response.status_code != 200:
-            print(f"{datetime.now()} : Server unresponsive!")
-        text = response.text
-        soup = BeautifulSoup(text, "lxml")
-        table = soup.find(text="S. No.").find_parent("table")
-        rows = table.find_all("tr")
-        sums = [col.get_text().replace("\n", "") for col in rows[-1].find_all("td")][1:]
+        history = self.update()
+        confirmed = sum([sum(list(v.items())[-1][1][:2]) for k, v in history.items()])
+        recovered = sum([list(v.items())[-1][1][2] for k, v in history.items()])
+        death = sum([list(v.items())[-1][1][3] for k, v in history.items()])
+
         return {
-            "Confirmed": int(sums[0]) + int(sums[1]),
-            "Recovered": int(sums[2]),
-            "Death": int(sums[3]),
+            "Confirmed": confirmed,
+            "Recovered": recovered,
+            "Death": death,
         }
 
-    # def _check_for_update(self):
-    #     response = requests.get(self.url)
-    #     if response.status_code != 200:
-    #         print(f"{datetime.now()} : Server unresponsive!")
-    #     text = response.text
-    #     soup = BeautifulSoup(text, "lxml")
-    #     table = soup.find(text="S. No.").find_parent("table")
-    #     rows = table.find_all("tr")
-    #     sums = [col.get_text().replace("\n", "") for col in rows[-1].find_all("td")][1:]
-    #     return sum([int(x) for x in sums])
+    def update(self):
+        history = DB().retrieve("history")
+        if history is None:
+            with open("history.json", "r") as f:
+                history = json.load(f)
 
-    def update(self, history):
         if self._needs_update():
             record = get_record(self.url)
             record = format_records(
                 datetime.strftime(datetime.now(), "%d/%m/%Y"), record
             )
-            for k, v in record.items():
+            for k, _ in record.items():
                 if k in history.keys():
                     history[k].update(record[k])
                 else:
                     history[k] = record[k]
-        with open("history.json", "w") as f:
-            json.dump(history, f)
-        print("{} : updated".format(datetime.now().strftime("%d/%m/%Y %H-%M-%S")))
+            db = DB()
+            db.put(("history", history))
+            db.put(("last_snapshot", datetime.now().strftime("%d/%m/%Y %H-%M-%S")))
+
+            with open("history.json", "w") as f:
+                json.dump(history, f)
+
+            print("{} : updated".format(datetime.now().strftime("%d/%m/%Y %H-%M-%S")))
         return history
 
     # def run(self, waiting=60):
