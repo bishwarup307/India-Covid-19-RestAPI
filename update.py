@@ -8,33 +8,19 @@ import requests
 from fetch import get_record, format_records
 from datetime import datetime, timedelta
 import time
+import logging
 import json
 import argparse
-import shelve
+import bmemcached
 
-
-class DB:
-    def __init__(self, name="COVID_DB"):
-        self.db = name
-
-    def put(self, var):
-        assert len(var) == 2
-        assert isinstance(var[0], str)
-        db = shelve.open(self.db)
-        db[var[0]] = var[1]
-        db.close()
-
-    def retrieve(self, key, default=None):
-        try:
-            db = shelve.open(self.db)
-            result = db[key]
-            db.close()
-        except KeyError:
-            print(f"Unable to locate record for `{key}`")
-            result = default
-        finally:
-            return result
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter(
+    "%(asctime)s:%(levelname)s:%(name)s:%(processName)s:%(message)s"
+)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 # TODO: remove multiple dependency on save
 class Update:
@@ -42,6 +28,17 @@ class Update:
         self.url = url
         self._total_cases = 168
         self._last_updated = datetime.now()
+        self.db = bmemcached.Client(
+            os.environ.get("MEMCACHEDCLOUD_SERVERS").split(","),
+            os.environ.get("MEMCACHEDCLOUD_USERNAME"),
+            os.environ.get("MEMCACHEDCLOUD_PASSWORD"),
+        )
+        try:
+            history = self.db.get("history")
+        except:
+            with open("history.json", "r") as f:
+                history = json.load(f)
+            self.db.set("history", self.history)
 
     @property
     def total_cases(self):
@@ -66,19 +63,30 @@ class Update:
         if resp.status_code == 200:
             last_modified = resp.headers["last-modified"]
             last_modified = datetime.strptime(last_modified, "%a, %d %b %Y %H:%M:%S %Z")
-            return last_modified
+        else:
+            logger.error(f"cannot connect to server: {self.url}")
+            last_modified = None
+        return last_modified
 
     def _needs_update(self):
+        try:
+            last_snapshot = self.db.get("last_snapshot")
+        except:
+            last_snapshot = None
+        if last_snapshot is None:
+            return True
 
-        last_snapshot = DB().retrieve(
-            "last_snapshot", default=(datetime.now() - timedelta(days=3))
-        )
         if isinstance(last_snapshot, str):
             last_snapshot = datetime.strptime(last_snapshot, "%d/%m/%Y %H-%M-%S")
 
         last_modified = self.get_last_modified()
+
         if last_modified is None:
+            logger.info(
+                "Coudn't fetch details from server, trying to serve cached results..."
+            )
             return False
+
         if last_modified <= last_snapshot:
             return False
         return True
@@ -96,11 +104,11 @@ class Update:
         }
 
     def update(self):
-        history = DB().retrieve("history")
-        if history is None:
-            with open("history.json", "r") as f:
-                history = json.load(f)
-
+        try:
+            history = self.db.get("history")
+        except Exception as exc:
+            logger.critical("Coudn't access database...")
+            raise exc
         if self._needs_update():
             record = get_record(self.url)
             record = format_records(
@@ -111,14 +119,9 @@ class Update:
                     history[k].update(record[k])
                 else:
                     history[k] = record[k]
-            db = DB()
-            db.put(("history", history))
-            db.put(("last_snapshot", datetime.now().strftime("%d/%m/%Y %H-%M-%S")))
-
-            with open("history.json", "w") as f:
-                json.dump(history, f)
-
-            print("{} : updated".format(datetime.now().strftime("%d/%m/%Y %H-%M-%S")))
+            self.db.set("history", history)
+            self.db.set("last_snapshot", datetime.now().strftime("%d/%m/%Y %H-%M-%S"))
+            logger.info("updated history...")
         return history
 
     # def run(self, waiting=60):

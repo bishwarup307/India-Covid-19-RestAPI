@@ -6,6 +6,7 @@ Modified: Friday, 20th March 2020 2:43:27 pm [bishwarup]
 
 
 import re
+import logging
 from tqdm import tqdm
 import requests
 import warnings
@@ -21,12 +22,19 @@ all_headers = [
     "Death",
 ]
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter(
+    "%(asctime)s:%(levelname)s:%(name)s:%(processName)s:%(message)s"
+)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
 
 def get_headers(l):
     headers = []
     for item in l:
-        # if item == "S. No.":
-        #     headers.append(None)
         if ("State" in item) or ("UT" in item):
             headers.append("State")
         elif "Confirmed" in item:
@@ -75,7 +83,8 @@ def format_records(date, records):
 def get_record(url):
     response = requests.get(url)
     if response.status_code != 200:
-        raise Exception("Server unresponsive")
+        logger.critical("Server unresponsive")
+        raise requests.HTTPError
     text = response.text
     soup = BeautifulSoup(text, "lxml")
     table = soup.find(text="S. No.")
@@ -94,7 +103,7 @@ def get_record(url):
             if len(record) > 0:
                 records.append(record)
     except AttributeError:
-        warnings.warn("Could not locate/parse the table")
+        logger.warn("Could not locate/parse the table")
     finally:
         return records
 
@@ -109,12 +118,9 @@ def get_stats(urls):
     for url in tqdm(urls):
         s = get_record(url)
         date = get_date_info(url)
-        # print(date)
         record = format_records(date, s)
-        # print(record)
         for k, v in record.items():
             if k in records.keys():
-                # print("here")
                 records[k].update(record[k])
             else:
                 records[k] = record[k]
@@ -133,7 +139,13 @@ if __name__ == "__main__":
         "http://web.archive.org/web/20200317050937/https://www.mohfw.gov.in/",
         "https://web.archive.org/web/20200318233345/https://www.mohfw.gov.in/",
         "https://web.archive.org/web/20200319155059/https://www.mohfw.gov.in/",
+        "https://web.archive.org/web/20200320173607/https://www.mohfw.gov.in/",
+        "https://web.archive.org/web/20200321171825/https://www.mohfw.gov.in/",
+        "https://web.archive.org/web/20200322174137/https://www.mohfw.gov.in/",
+        "https://web.archive.org/web/20200323145438/https://www.mohfw.gov.in/",
+        "https://web.archive.org/web/20200324101954/https://www.mohfw.gov.in/",
     ]
     r = get_stats(urls)
     with open("history.json", "w") as f:
         json.dump(r, f)
+    logger.info(f"successfully fetched {len(urls)} urls")
