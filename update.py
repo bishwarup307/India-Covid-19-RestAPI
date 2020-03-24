@@ -34,9 +34,8 @@ class Update:
             os.environ.get("MEMCACHEDCLOUD_USERNAME"),
             os.environ.get("MEMCACHEDCLOUD_PASSWORD"),
         )
-        try:
-            history = self.db.get("history")
-        except:
+        history = self.db.get("history")
+        if history is None:
             with open("history.json", "r") as f:
                 history = json.load(f)
             self.db.set("history", self.history)
@@ -70,10 +69,7 @@ class Update:
         return last_modified
 
     def _needs_update(self):
-        try:
-            last_snapshot = self.db.get("last_snapshot")
-        except:
-            last_snapshot = None
+        last_snapshot = self.db.get("last_snapshot")
         if last_snapshot is None:
             return True
 
@@ -105,11 +101,10 @@ class Update:
         }
 
     def update(self):
-        try:
-            history = self.db.get("history")
-        except Exception as exc:
+        history = self.db.get("history")
+        if history is None:
             logger.critical("Coudn't access database...")
-            raise exc
+            raise
         if self._needs_update():
             record = get_record(self.url)
             record = format_records(
