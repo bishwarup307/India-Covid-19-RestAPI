@@ -38,7 +38,7 @@ class Update:
         if history is None:
             with open("history.json", "r") as f:
                 history = json.load(f)
-            self.db.set("history", self.history)
+            self.db.set("history", history)
 
     @property
     def total_cases(self):
