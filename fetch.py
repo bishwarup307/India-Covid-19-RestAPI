@@ -75,7 +75,12 @@ def format_records(date, records):
             headers = get_headers(record)
             indices = get_headers_index(headers)
         else:
-            rec = [int(get_elem(record, k)) for k in indices[1:]]
+            rec = [
+                int(
+                    re.search(r"\d+", get_elem(record, k)).group(0)
+                )  # too many changes in the website format
+                for k in indices[1:]
+            ]
             r.update({record[indices[0]]: {date: rec}})
     return r
 

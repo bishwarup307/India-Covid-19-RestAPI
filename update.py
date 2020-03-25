@@ -4,6 +4,7 @@ Created: Friday, 17th March 2020 3:24:31 pm
 Modified: Friday, 20th March 2020 2:42:57 pm [bishwarup]
 """
 import os
+import re
 from bs4 import BeautifulSoup
 import requests
 from fetch import get_record, format_records
