@@ -104,15 +104,16 @@ def format_records(date, records):
             headers = get_headers(record)
             indices = get_headers_index(headers)
         else:
-            if record[indices[0]] not in states:
+            try:
+                rec = [
+                    int(
+                        re.search(r"\d+", get_elem(record, k)).group(0)
+                    )  # too many changes in the website format
+                    for k in indices[1:]
+                ]
+                r.update({record[indices[0]]: {date: rec}})
+            except IndexError:
                 continue
-            rec = [
-                int(
-                    re.search(r"\d+", get_elem(record, k)).group(0)
-                )  # too many changes in the website format
-                for k in indices[1:]
-            ]
-            r.update({record[indices[0]]: {date: rec}})
     return r
 
 
