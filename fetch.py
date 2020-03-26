@@ -31,6 +31,35 @@ formatter = logging.Formatter(
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
+states = [
+    "Andhra Pradesh",
+    "Bihar",
+    "Chhattisgarh",
+    "Delhi",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Karnataka",
+    "Kerala",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Mizoram",
+    "Odisha",
+    "Puducherry",
+    "Punjab",
+    "Rajasthan",
+    "Tamil Nadu",
+    "Telengana",
+    "Chandigarh",
+    "Jammu and Kashmir",
+    "Ladakh",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal",
+]
+
 
 def get_headers(l):
     headers = []
@@ -75,6 +104,8 @@ def format_records(date, records):
             headers = get_headers(record)
             indices = get_headers_index(headers)
         else:
+            if record[indices[0]] not in states:
+                continue
             rec = [
                 int(
                     re.search(r"\d+", get_elem(record, k)).group(0)

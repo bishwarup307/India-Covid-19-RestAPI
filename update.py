@@ -24,6 +24,7 @@ formatter = logging.Formatter(
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
+
 # TODO: remove multiple dependency on save
 class Update:
     def __init__(self, url):
