@@ -31,35 +31,6 @@ formatter = logging.Formatter(
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
-states = [
-    "Andhra Pradesh",
-    "Bihar",
-    "Chhattisgarh",
-    "Delhi",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Manipur",
-    "Mizoram",
-    "Odisha",
-    "Puducherry",
-    "Punjab",
-    "Rajasthan",
-    "Tamil Nadu",
-    "Telengana",
-    "Chandigarh",
-    "Jammu and Kashmir",
-    "Ladakh",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
-]
-
 
 def get_headers(l):
     headers = []
